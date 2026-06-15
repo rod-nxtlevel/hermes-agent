@@ -25,6 +25,7 @@ import { MemoryConnect } from './memory/connect'
 import { ModelSettings, ModelSettingsSkeleton } from './model-settings'
 import { EmptyState, ListRow, LoadingState, SettingsContent } from './primitives'
 import { ProviderConfigPanel } from './provider-config-panel'
+import { VoiceSettingsPanel } from './voice-settings-panel'
 
 // On the Voice page, only surface the sub-fields of the *selected* TTS/STT
 // provider — otherwise every provider's options render at once (the "totally
@@ -319,7 +320,7 @@ export function ConfigSettings({
 
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- copy is stable; avoid re-scheduling autosave on locale change
-  }, [config, onConfigSaved, saveVersion])
+  }, [c.autosaveFailed, config, onConfigSaved, saveVersion])
 
   const updateConfig = (next: HermesConfigRecord) => {
     saveVersionRef.current += 1
@@ -443,6 +444,7 @@ export function ConfigSettings({
           <ModelSettings onMainModelChanged={onMainModelChanged} />
         </div>
       )}
+      {activeSectionId === 'voice' && <VoiceSettingsPanel />}
       {visibleFields.length === 0 ? (
         <EmptyState description={c.emptyDesc} title={c.emptyTitle} />
       ) : (

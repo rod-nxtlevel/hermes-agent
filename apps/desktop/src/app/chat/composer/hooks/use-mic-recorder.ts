@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { selectedMicrophoneDeviceId } from '@/store/microphone'
+
 type BrowserAudioContext = typeof AudioContext
 
 export interface MicRecorderOptions {
   onLevel?: (level: number) => void
   onError?: (error: Error) => void
+  onDeviceFallback?: () => void
   onSilence?: () => void
   silenceLevel?: number
   silenceMs?: number
@@ -18,6 +21,7 @@ export interface MicRecording {
 }
 
 export interface MicRecorderErrorCopy {
+  microphoneSelectionUnavailable: string
   microphoneAccessDenied: string
   microphoneConstraintsUnsupported: string
   microphoneInUse: string
@@ -59,11 +63,30 @@ function micError(error: unknown, copy: MicRecorderErrorCopy): Error {
   return new Error(copy.microphoneStartFailed)
 }
 
-export function useMicRecorder(copy: MicRecorderErrorCopy): {
-  handle: MicRecorderHandle
-  level: number
-  recording: boolean
-} {
+function selectedDeviceUnavailable(error: unknown): boolean {
+  const name = error instanceof DOMException ? error.name : ''
+
+  return name === 'OverconstrainedError' || name === 'NotFoundError' || name === 'DevicesNotFoundError'
+}
+
+async function openMicrophoneStream(deviceId: string): Promise<MediaStream> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new DOMException('Microphone capture is not available.', 'NotFoundError')
+  }
+
+  const audio: MediaTrackConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true
+  }
+
+  if (deviceId) {
+    audio.deviceId = { exact: deviceId }
+  }
+
+  return navigator.mediaDevices.getUserMedia({ audio })
+}
+
+export function useMicRecorder(copy: MicRecorderErrorCopy): { handle: MicRecorderHandle; level: number; recording: boolean } {
   const [level, setLevel] = useState(0)
   const [recording, setRecording] = useState(false)
 
@@ -184,9 +207,18 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
     let stream: MediaStream
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true }
-      })
+      const deviceId = selectedMicrophoneDeviceId()
+
+      try {
+        stream = await openMicrophoneStream(deviceId)
+      } catch (error) {
+        if (!deviceId || !selectedDeviceUnavailable(error)) {
+          throw error
+        }
+
+        options.onDeviceFallback?.()
+        stream = await openMicrophoneStream('')
+      }
     } catch (error) {
       throw micError(error, copy)
     }

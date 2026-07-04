@@ -1887,6 +1887,7 @@ export interface Translations {
     thread: {
       loadingSession: string
       showEarlier: string
+      messageRenderFailed: string
       loadingResponse: string
       resumeWhenBackgroundDone: (count: number) => string
       thinking: string

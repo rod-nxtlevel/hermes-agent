@@ -1255,6 +1255,14 @@ export interface Translations {
     noWorkerLog: string
     attachments: string
     noAttachments: string
+    addAttachment: string
+    attachmentUploading: string
+    attachmentUploaded: (count: number) => string
+    attachmentUploadFailed: string
+    downloadAttachment: (name: string) => string
+    attachmentDownloaded: (name: string) => string
+    attachmentDownloadFailed: string
+    attachmentReveal: string
     updateFailed: string
     newCardTitle: string
     newCardDesc: string
